@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal submissions</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+</head>
+<body>
+    <table id="table">
+        <tr>
+            <th>name</th>
+            <th>email</th>
+        </tr>
+    </table>
+    <script>
+        const tabledata =  `{{users}}`;
+        const table = document.getElementById("table");
+        const data = JSON.parse(tabledata);
+        table.innerHTML += data.map((user) => {
+            return `<tr>
+                <td>${user.name}</td>
+                <td>${user.email}</td>
+
+            </tr>`
+        }).join("");
+
+    </script>
+</body>
+</html>

@@ -46,6 +46,17 @@ router
       context.response.status = 400;
     }
   })
+  .get("/quiz/render", async (context) => {
+    const list = kv.list({prefix:["quiz"]});
+    const users = [];
+    for await (const {key, value} of list) {
+      users.push({email: key[1], name: value});
+    }
+    // import html file from templates/quiz.html
+    const html = await Deno.readTextFile("./templates/quiz.html");
+    // replace {{users}} with users
+    context.response.body = html.replace("{{users}}", JSON.stringify(users));
+  })
   .get("/quiz/:email", async (context) => {
     const email = context.params.email;
     if (email) {
@@ -116,6 +127,17 @@ router
       context.response.status = 400;
     }
   })
+  .get("/goal/render", async (context) => {
+    const list = kv.list<{name: string; institution: string; location: string;}>({prefix:["goal"]});
+    const users = [];
+    for await (const {key, value} of list) {
+      users.push({email: key[1], name: value.name, institution: value.institution, location: value.location});
+    }
+    // import html file from templates/goal.html
+    const html = await Deno.readTextFile("./templates/goal.html");
+    // replace {{users}} with users
+    context.response.body = html.replace("{{users}}", JSON.stringify(users));
+  })
   .get("/goal/:email", async (context) => {
     const email = context.params.email;
     if (email) {
@@ -158,7 +180,8 @@ router
       users.push({email: key[1], name: value.name, institution: value.institution, location: value.location});
     context.response.body = users;
     }
-  });
+  })
+
 
 const app = new Application();
 app.use(oakCors()); // Enable CORS for All Routes
