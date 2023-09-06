@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goal submissions</title>
+    <title>Quiz submissions</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 </head>
 <body>
     <table id="table">
         <tr>
             <th>name</th>
+            <th>institution</th>
+            <th>location</th>
             <th>email</th>
         </tr>
     </table>
@@ -20,8 +22,9 @@
         table.innerHTML += data.map((user) => {
             return `<tr>
                 <td>${user.name}</td>
+                <td>${user.institution}</td>
+                <td>${user.location}</td>
                 <td>${user.email}</td>
-
             </tr>`
         }).join("");
 
