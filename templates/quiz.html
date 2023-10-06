@@ -13,18 +13,7 @@
             <th>name</th>
             <th>email</th>
         </tr>
+        {{users}}
     </table>
-    <script>
-        const tabledata =  `{{users}}`;
-        const table = document.getElementById("table");
-        const data = JSON.parse(tabledata);
-        table.innerHTML += data.map((user) => {
-            return `<tr>
-                <td>${user.name}</td>
-                <td>${user.email}</td>
-            </tr>`
-        }).join("");
-
-    </script>
 </body>
 </html>

@@ -55,7 +55,14 @@ router
     // import html file from templates/quiz.html
     const html = await Deno.readTextFile("./templates/quiz.html");
     // replace {{users}} with users
-    context.response.body = html.replace("{{users}}", JSON.stringify(users));
+    context.response.body = html.replace("{{users}}", `
+      ${users.map(user => `
+      <tr>
+        <td>${user.name}</td>
+        <td>${user.email}</td>
+      </tr>
+      `).join("")}
+    `);
   })
   .get("/quiz/:email", async (context) => {
     const email = context.params.email;
@@ -136,7 +143,16 @@ router
     // import html file from templates/goal.html
     const html = await Deno.readTextFile("./templates/goal.html");
     // replace {{users}} with users
-    context.response.body = html.replace("{{users}}", JSON.stringify(users));
+    context.response.body = html.replace("{{users}}", `
+      ${users.map(user => `
+      <tr>
+        <td>${user.name}</td>
+        <td>${user.institution}</td>
+        <td>${user.location}</td>
+        <td>${user.email}</td>
+      </tr>
+      `).join("")}
+    `);
   })
   .get("/goal/:email", async (context) => {
     const email = context.params.email;
