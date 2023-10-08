@@ -249,24 +249,11 @@ router
       if (value) {
         for (const user of value) {
           if (user.name && user.institution && user.location && user.email) {
-            // email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(user.email)) {
-              context.response.body = "Invalid email address";
-              context.response.status = 400;
-              return;
-            }
-            const found = await kv.get(["goal", user.email]);
-            if (!found.value) {
-              await kv.set(["goal", user.email], {
-                name: user.name,
-                institution: user.institution,
-                location: user.location,
-              });
-            } else {
-              context.response.body = "user already exists";
-              context.response.status = 400;
-            }
+            kv.set(["goal", user.email], {
+              name: user.name,
+              institution: user.institution,
+              location: user.location,
+            });
           }
         }
         context.response.body = "users added.";
