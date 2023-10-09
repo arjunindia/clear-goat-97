@@ -253,7 +253,7 @@ router
             // email validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(user.email)) {
-              context.response.body = "Invalid email address";
+              context.response.body = "Invalid email address at " + user.email;
               context.response.status = 400;
               return;
             }
