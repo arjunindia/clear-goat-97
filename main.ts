@@ -267,7 +267,8 @@ router
           }
         }
         await Promise.all(promiseArr);
-        context.response.body = "users added.";
+        context.response.body =
+          "users added successfully. count=" + promiseArr.length;
       }
     } else {
       context.response.body =
