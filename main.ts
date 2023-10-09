@@ -246,16 +246,27 @@ router
         location: string;
         email: string;
       }[] = await body.value;
+      const promiseArr = [];
       if (value) {
         for (const user of value) {
           if (user.name && user.institution && user.location && user.email) {
-            kv.set(["goal", user.email], {
-              name: user.name,
-              institution: user.institution,
-              location: user.location,
-            });
+            // email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(user.email)) {
+              context.response.body = "Invalid email address";
+              context.response.status = 400;
+              return;
+            }
+            promiseArr.push(
+              kv.set(["goal", user.email], {
+                name: user.name,
+                institution: user.institution,
+                location: user.location,
+              })
+            );
           }
         }
+        await Promise.all(promiseArr);
         context.response.body = "users added.";
       }
     } else {
