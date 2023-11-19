@@ -14,12 +14,12 @@ const redis = await connect({
 
 const cache = new Map<
   string,
-  {
-    email: string;
-    name: string;
-    institution: string;
-    location: string;
-  }[]
+  | {
+      email: string;
+      name: string;
+      institution?: string;
+      location?: string;
+    }[]
 >(["goal", "quiz"].map((key) => [key, []]));
 
 router.use(async (context, next) => {
@@ -119,11 +119,15 @@ router
       return;
     }
 
-    const list = kv.list({ prefix: ["quiz"] });
+    const list = kv.list<string>({
+      prefix: ["quiz"],
+    });
     const users = [];
     for await (const { key, value } of list) {
-      users.push({ email: key[1], name: value });
+      users.push({ email: key[1].toString(), name: value });
     }
+    cache.set("quiz", users);
+    redis.set("quiz", JSON.stringify(users));
     // replace {{users}} with users
     context.response.body = html.replace(
       "{{users}}",
@@ -189,12 +193,14 @@ router
       context.response.body = JSON.parse(redisValue);
       return;
     }
-    const list = kv.list({ prefix: ["quiz"] });
+    const list = kv.list<string>({ prefix: ["quiz"] });
     const users = [];
     for await (const { key, value } of list) {
-      users.push({ email: key[1], name: value });
-      context.response.body = users;
+      users.push({ email: key[1].toString(), name: value });
     }
+    cache.set("quiz", users);
+    redis.set("quiz", JSON.stringify(users));
+    context.response.body = users;
   })
   .post("/goal", async (context) => {
     const body = context.request.body();
