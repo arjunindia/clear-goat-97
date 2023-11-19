@@ -1,8 +1,15 @@
 import { Application, Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
+import { connect } from "https://deno.land/x/redis/mod.ts";
 
 const router = new Router();
 const kv = await Deno.openKv();
+
+const redis = await connect({
+  hostname: Deno.env.get("REDIS_HOST") || "127.0.0.1",
+  port: Deno.env.get("REDIS_PORT") ? Number(Deno.env.get("REDIS_PORT")!) : 6379,
+  password: Deno.env.get("REDIS_PASS") || undefined,
+});
 
 const cache = new Map<
   string,
@@ -152,6 +159,7 @@ router
             location: value.location,
           });
           cache.set("goal", []); // clear cache
+          redis.del("goal");
           context.response.body = "user added.";
         } else {
           context.response.body = "user already exists";
@@ -192,6 +200,32 @@ router
       );
       return;
     }
+    const redisValue = await redis.get("goal");
+    if (redisValue && (JSON.parse(redisValue)?.length || 0) > 0) {
+      context.response.body = html.replace(
+        "{{users}}",
+        `
+        ${JSON.parse(redisValue)
+          .map(
+            (user: {
+              name: string;
+              institution: string;
+              location: string;
+              email: string;
+            }) => `
+        <tr>
+          <td>${user.name}</td>
+          <td>${user.institution}</td>
+          <td>${user.location}</td>
+          <td>${user.email}</td>
+        </tr>
+        `
+          )
+          .join("")}
+      `
+      );
+      return;
+    }
     const list = kv.list<{
       name: string;
       institution: string;
@@ -207,6 +241,7 @@ router
       });
     }
     cache.set("goal", users);
+    redis.set("goal", JSON.stringify(users));
     context.response.body = html.replace(
       "{{users}}",
       `
@@ -247,6 +282,7 @@ router
       if (found.value) {
         await kv.delete(["goal", email]);
         cache.set("goal", []); // clear cache
+        redis.del("goal");
         context.response.body = "user deleted";
       } else {
         context.response.body = "user not found";
@@ -305,6 +341,7 @@ router
         }
         await Promise.all(promiseArr);
         cache.set("goal", []); // clear cache
+        redis.del("goal");
         context.response.body =
           "users added successfully. count=" + promiseArr.length;
       }
