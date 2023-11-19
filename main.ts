@@ -1,3 +1,4 @@
+import "https://deno.land/std@0.207.0/dotenv/load.ts";
 import { Application, Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { connect } from "https://deno.land/x/redis/mod.ts";
@@ -54,6 +55,8 @@ router
         const found = await kv.get(["quiz", value.email]);
         if (!found.value) {
           await kv.set(["quiz", value.email], value.name);
+          cache.set("quiz", []); // clear cache
+          redis.del("quiz");
           context.response.body = "user added.";
         } else {
           context.response.body = "user already exists";
@@ -71,13 +74,56 @@ router
     }
   })
   .get("/quiz/render", async (context) => {
+    const html = await Deno.readTextFile("./templates/quiz.html");
+    if (
+      cache.has("quiz") &&
+      cache.get("quiz") &&
+      (cache.get("quiz")?.length || 0) > 0
+    ) {
+      context.response.body = html.replace(
+        "{{users}}",
+        `
+        ${cache
+          .get("quiz")
+          ?.map(
+            (user) => `
+        <tr>
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+        </tr>
+        `
+          )
+          .join("")}
+      `
+      );
+      return;
+    }
+    const redisValue = await redis.get("quiz");
+    if (redisValue && (JSON.parse(redisValue)?.length || 0) > 0) {
+      cache.set("quiz", JSON.parse(redisValue));
+      context.response.body = html.replace(
+        "{{users}}",
+        `
+        ${JSON.parse(redisValue)
+          .map(
+            (user: { name: string; email: string }) => `
+        <tr>
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+        </tr>
+        `
+          )
+          .join("")}
+      `
+      );
+      return;
+    }
+
     const list = kv.list({ prefix: ["quiz"] });
     const users = [];
     for await (const { key, value } of list) {
       users.push({ email: key[1], name: value });
     }
-    // import html file from templates/quiz.html
-    const html = await Deno.readTextFile("./templates/quiz.html");
     // replace {{users}} with users
     context.response.body = html.replace(
       "{{users}}",
@@ -116,6 +162,8 @@ router
       const found = await kv.get(["quiz", email]);
       if (found.value) {
         await kv.delete(["quiz", email]);
+        cache.set("quiz", []); // clear cache
+        redis.del("quiz");
         context.response.body = "user deleted";
       } else {
         context.response.body = "user not found";
@@ -127,6 +175,20 @@ router
     }
   })
   .get("/quiz", async (context) => {
+    if (
+      cache.has("quiz") &&
+      cache.get("quiz") &&
+      (cache.get("quiz")?.length || 0) > 0
+    ) {
+      context.response.body = cache.get("quiz");
+      return;
+    }
+    const redisValue = await redis.get("quiz");
+    if (redisValue && (JSON.parse(redisValue)?.length || 0) > 0) {
+      cache.set("quiz", JSON.parse(redisValue));
+      context.response.body = JSON.parse(redisValue);
+      return;
+    }
     const list = kv.list({ prefix: ["quiz"] });
     const users = [];
     for await (const { key, value } of list) {
@@ -202,6 +264,7 @@ router
     }
     const redisValue = await redis.get("goal");
     if (redisValue && (JSON.parse(redisValue)?.length || 0) > 0) {
+      cache.set("goal", JSON.parse(redisValue));
       context.response.body = html.replace(
         "{{users}}",
         `
@@ -294,6 +357,20 @@ router
     }
   })
   .get("/goal", async (context) => {
+    if (
+      cache.has("goal") &&
+      cache.get("goal") &&
+      (cache.get("goal")?.length || 0) > 0
+    ) {
+      context.response.body = cache.get("goal");
+      return;
+    }
+    const redisValue = await redis.get("goal");
+    if (redisValue && (JSON.parse(redisValue)?.length || 0) > 0) {
+      cache.set("goal", JSON.parse(redisValue));
+      context.response.body = JSON.parse(redisValue);
+      return;
+    }
     const list = kv.list<{
       name: string;
       institution: string;

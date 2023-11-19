@@ -1,5 +1,5 @@
 {
-    "tasks": {
-      "dev": "deno --unstable run --allow-net --allow-read --watch main.ts"
-    }
+  "tasks": {
+    "dev": "deno --unstable run -A --watch main.ts"
   }
+}
