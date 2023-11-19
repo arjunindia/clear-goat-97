@@ -4,6 +4,16 @@ import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 const router = new Router();
 const kv = await Deno.openKv();
 
+const cache = new Map<
+  string,
+  {
+    email: string;
+    name: string;
+    institution: string;
+    location: string;
+  }[]
+>(["goal", "quiz"].map((key) => [key, []]));
+
 router.use(async (context, next) => {
   const start = Date.now();
   await next();
@@ -141,6 +151,7 @@ router
             institution: value.institution,
             location: value.location,
           });
+          cache.set("goal", []); // clear cache
           context.response.body = "user added.";
         } else {
           context.response.body = "user already exists";
@@ -154,6 +165,33 @@ router
     }
   })
   .get("/goal/render", async (context) => {
+    const html = await Deno.readTextFile("./templates/goal.html");
+
+    if (
+      cache.has("goal") &&
+      cache.get("goal") &&
+      (cache.get("goal")?.length || 0) > 0
+    ) {
+      context.response.body = html.replace(
+        "{{users}}",
+        `
+        ${cache
+          .get("goal")
+          ?.map(
+            (user) => `
+        <tr>
+          <td>${user.name}</td>
+          <td>${user.institution}</td>
+          <td>${user.location}</td>
+          <td>${user.email}</td>
+        </tr>
+        `
+          )
+          .join("")}
+      `
+      );
+      return;
+    }
     const list = kv.list<{
       name: string;
       institution: string;
@@ -162,15 +200,13 @@ router
     const users = [];
     for await (const { key, value } of list) {
       users.push({
-        email: key[1],
+        email: key[1].toString(),
         name: value.name,
         institution: value.institution,
         location: value.location,
       });
     }
-    // import html file from templates/goal.html
-    const html = await Deno.readTextFile("./templates/goal.html");
-    // replace {{users}} with users
+    cache.set("goal", users);
     context.response.body = html.replace(
       "{{users}}",
       `
@@ -210,6 +246,7 @@ router
       const found = await kv.get(["goal", email]);
       if (found.value) {
         await kv.delete(["goal", email]);
+        cache.set("goal", []); // clear cache
         context.response.body = "user deleted";
       } else {
         context.response.body = "user not found";
@@ -267,6 +304,7 @@ router
           }
         }
         await Promise.all(promiseArr);
+        cache.set("goal", []); // clear cache
         context.response.body =
           "users added successfully. count=" + promiseArr.length;
       }
